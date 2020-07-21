@@ -106,7 +106,7 @@ instance Contains (m t) ts => ProvidesEffect t (Env m ts) (ReaderT (Env m ts) m)
 instance Provides (Labeled l t) (Env m ts) => ProvidesLabel l t (Env m ts) where
   labelFrom = runLabeled . provideFrom @(Labeled l t)
 
--- # internal api
+-- # internal api ---------------------------------------------------------------------------------
 
 data Any where
   Any ::t -> Any

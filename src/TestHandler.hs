@@ -34,15 +34,14 @@ handler someDependency a = do
 
   return $ show myListToBeRendered
 
--- type alias provides some context. At runtime, the application env should also require "bork" label
--- if this function is used to satisfy the depenency tree (see Server.hs)
+-- type alias provides some context.
 type SomeDependency m = m String
 someDependency
   :: ( MonadReader e m
      , MonadIO m
-     , ProvidesF Maybe Int e
-     , ProvidesF [] Int e
-     , ProvidesF IO Int e
+     , ProvidesF Maybe Int e -- optional
+     , ProvidesF [] Int e    -- many values
+     , ProvidesF IO Int e    -- kind of useless, but possible
      )
   => m String
 someDependency = do

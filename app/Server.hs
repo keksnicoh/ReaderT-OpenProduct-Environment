@@ -13,6 +13,7 @@ import           Network.Wai                    ( Application )
 import           TestHandler
 import qualified Data.Time                     as T
 
+-- must reflect all constraint of the dependency tree
 type AppEnv m e
   = ( Provides String e
     , Provides (IO T.UTCTime) e
