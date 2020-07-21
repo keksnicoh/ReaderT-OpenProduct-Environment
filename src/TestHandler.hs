@@ -21,6 +21,7 @@ handler
      , ProvidesLabel "derp" String e
      )
   => SomeDependency m -- dependency injection
+  -- ... n dependencies
   -> Maybe Int        -- args
   -> m String
 handler someDependency a = do

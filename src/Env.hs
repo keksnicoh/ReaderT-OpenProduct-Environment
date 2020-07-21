@@ -22,7 +22,6 @@ where
 
 import           Data.Kind                      ( Type )
 import qualified GHC.TypeLits                  as TL
-import qualified Fcf
 import           Fcf                     hiding ( Tail )
 import           Data.Proxy                     ( Proxy(..) )
 import           Unsafe.Coerce                  ( unsafeCoerce )
@@ -35,6 +34,19 @@ import qualified Data.Vector                   as V
 import           Control.Monad.Identity         ( runIdentity
                                                 , Identity
                                                 )
+
+-- # basic datatype
+
+-- we use a phaontom type parameter to embed to environment
+data Env (m :: Type -> Type) (ts :: [k]) where
+  Env ::V.Vector Any -> Env m ts
+
+nil :: Env m '[]
+nil = Env V.empty
+
+(#:) :: t -> Env m ts -> Env m (t ': ts)
+ft #: (Env v) = Env $ V.cons (Any ft) v
+infixr 5 #:
 
 -- # public api
 
@@ -72,18 +84,6 @@ label
    . (TL.KnownSymbol l, MonadReader e m, ProvidesLabel l t e)
   => m t
 label = asks $ labelFrom @l
-
--- we use a phaontom type parameter to embed to environment into the
--- application stack
-data Env (m :: Type -> Type) (ts :: [k]) where
-  Env ::V.Vector Any -> Env m ts
-
-nil :: Env m '[]
-nil = Env V.empty
-
-(#:) :: t -> Env m ts -> Env m (t ': ts)
-ft #: (Env v) = Env $ V.cons (Any ft) v
-infixr 5 #:
 
 -- | when the underlying hlist contains a certain type, the environment provides the type as well
 instance ProvidesF Identity t (Env m ts) => Provides t (Env m ts) where
@@ -131,9 +131,8 @@ tailHV (Env v) = Env (V.unsafeTail v)
 
 -- # types
 type GetIndex (t :: k) (ts :: [k])
-  = Fcf.Eval
-      ((Fcf.=<<) (Fcf.FromMaybe Fcf.Stuck) (Fcf.FindIndex (Fcf.TyEq t) ts))
-type Extractable t ts = KnownListNat (Fcf.Eval (FindIndexList t ts))
+  = Eval (FromMaybe Stuck =<< FindIndex (TyEq t) ts)
+type Extractable t ts = KnownListNat (Eval (FindIndexList t ts))
 type GetMaybeIndex (t :: k) (ts :: [k]) = Eval (FindIndex (TyEq t) ts)
 type Contains t ts = TL.KnownNat (GetIndex t ts)
 
@@ -149,14 +148,14 @@ type family Drop_ (n :: TL.Nat) (xs :: [a]) :: [a] where
   Drop_ n (x ': xs) = Drop_ ((TL.-) n 1) xs
 
 -- # FCF
-data Drop :: TL.Nat -> [a] -> Fcf.Exp [a]
-type instance Fcf.Eval (Drop n as) = Drop_ n as
+data Drop :: TL.Nat -> [a] -> Exp [a]
+type instance Eval (Drop n as) = Drop_ n as
 
 data Tail :: [a] -> Exp [a]
 type instance Eval (Tail as) = Eval (Drop 1 as)
 
-data FindIndexList :: a -> [a] -> Fcf.Exp [TL.Nat]
-type instance Fcf.Eval (FindIndexList n as) = FindIndexList_ 0 n as
+data FindIndexList :: a -> [a] -> Exp [TL.Nat]
+type instance Eval (FindIndexList n as) = FindIndexList_ 0 n as
 
 -- # runtime representations
 
@@ -167,10 +166,9 @@ maybeIndexByType
   :: forall t ts . KnownMaybeNat (GetMaybeIndex t ts) => Maybe Int
 maybeIndexByType = fromIntegral <$> maybeNatVal (Proxy @(GetMaybeIndex t ts))
 
-findIndexList
-  :: forall t ts . KnownListNat (Fcf.Eval (FindIndexList t ts)) => [Int]
+findIndexList :: forall t ts . KnownListNat (Eval (FindIndexList t ts)) => [Int]
 findIndexList =
-  fromIntegral <$> listNatVal (Proxy @(Fcf.Eval (FindIndexList t ts)))
+  fromIntegral <$> listNatVal (Proxy @(Eval (FindIndexList t ts)))
 
 -- type demotion
 class KnownMaybeNat (v :: Maybe TL.Nat) where maybeNatVal :: Proxy v -> Maybe Integer
