@@ -4,7 +4,7 @@ Embedded ReaderT with OpenProduct environment allows to define static dependency
 Instead of a simple datatype, an OpenProduct is used.
 All factors of the product may be accessed by generic type class instances thus it's not required to define individual type classes for each field. The pattern is independent of Frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
 
-Use `Provides` constraint to access pure values while effectfull values `m e` can ebmedded via `Embedded` constraint in `MonadReader e m` context.
+Use `Provides` constraint to access pure values while effectfull values `m e` can ebmedded via `Embedded` constraint in `ReaderT e m` context.
 
 Most of the ideas in this repository are inspired by [S. Maguire - Thinking with Types][1]
 
