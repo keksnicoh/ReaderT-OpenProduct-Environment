@@ -2,20 +2,21 @@
   TypeOperators, FlexibleInstances, GADTs, ScopedTypeVariables,
   AllowAmbiguousTypes, FlexibleContexts, TypeApplications,
   RankNTypes, ConstraintKinds, UndecidableInstances,
-  FunctionalDependencies #-}
+  MultiParamTypeClasses #-}
 
 module Env
   ( nil
   , (#:)
   , Provides(..)
   , ProvidesF(..)
-  , ProvidesEffect(..)
-  , ProvidesLabel(..)
+  , EmbeddedF(..)
   , provide
   , provideF
-  , effect
-  , label
+  , embedded
+  , embeddedF
+  , labeled
   , Labeled(..)
+  , Label(..)
   , Embedded
   )
 where
@@ -37,104 +38,102 @@ import           Control.Monad.Identity         ( runIdentity
 
 -- # basic datatype
 
--- we use a phaontom type parameter to embed to environment
-data Env (m :: Type -> Type) (ts :: [k]) where
-  Env ::V.Vector Any -> Env m ts
+data Env (ts :: [k]) where
+  Env ::V.Vector Any -> Env ts
 
-nil :: Env m '[]
+nil :: Env '[]
 nil = Env V.empty
 
-(#:) :: t -> Env m ts -> Env m (t ': ts)
+(#:) :: t -> Env ts -> Env (t ': ts)
 ft #: (Env v) = Env $ V.cons (Any ft) v
 infixr 5 #:
 
 -- # public api
 
--- | provides a value by type
-class Provides f e where
-  provideFrom :: e -> f
+type Provides a e = ProvidesF Identity a e
+type Embedded a e m = EmbeddedF Identity a e m
+type Labeled l a e = Provides (Label l a) e
 
--- | todo: ProvidesF
-class ProvidesF f t e where
-  provideFromF :: e -> f t
+-- | provides an effectfull computation
+class ProvidesF f a e where
+  provideFromF :: e -> f a
 
--- | provides a effectfull computation where the effect is determined by the environment
-class ProvidesEffect f e m | e -> m where
-  effectFrom :: e -> m f
+-- | provides an embedded effectfull computation
+class EmbeddedF f a e m where
+  embeddedFromF :: e -> m (f a)
 
--- | provides a labeled value by type
-class ProvidesLabel l t e where
-  labelFrom :: e -> t
+instance Get f t ts => ProvidesF f t (Env ts) where
+  provideFromF = getF
 
-type Embedded a e m = ProvidesEffect a e (ReaderT e m)
-newtype Labeled (l :: TL.Symbol) (t :: Type) = Labeled { runLabeled :: t }
+instance (Traversable t, Applicative m, Get t (m a) ts)
+  => EmbeddedF t a (Env ts) (ReaderT (Env ts) m) where
+  embeddedFromF = ReaderT . const . sequenceA . getF
+
+newtype Label (l :: TL.Symbol) (t :: Type)
+  = Label { runLabel :: t }
   deriving (Show, Eq)
 
 provide :: forall t e m . (MonadReader e m, Provides t e) => m t
-provide = asks $ provideFrom @t
+provide = asks $ runIdentity . provideFromF @Identity @t
 
 provideF :: forall f t e m . (MonadReader e m, ProvidesF f t e) => m (f t)
 provideF = asks $ provideFromF @f @t
 
-effect :: forall t e m . (MonadReader e m, ProvidesEffect t e m) => m t
-effect = join . asks $ effectFrom @t
+embedded :: forall a e m . (MonadReader e m, EmbeddedF Identity a e m) => m a
+embedded = runIdentity <$> embeddedF @Identity @a
 
-label
-  :: forall l t e m
-   . (TL.KnownSymbol l, MonadReader e m, ProvidesLabel l t e)
-  => m t
-label = asks $ labelFrom @l
+embeddedF :: forall t a e m . (MonadReader e m, EmbeddedF t a e m) => m (t a)
+embeddedF = join . asks $ embeddedFromF
 
--- | when the underlying hlist contains a certain type, the environment provides the type as well
-instance ProvidesF Identity t (Env m ts) => Provides t (Env m ts) where
-  provideFrom = runIdentity . provideFromF
-
-instance {-# Overlapping #-} Extractable t ts => ProvidesF [] t (Env m ts) where
-  provideFromF = extract
-
-instance {-# Overlapping #-} KnownMaybeNat (GetMaybeIndex t ts) => ProvidesF Maybe t (Env m ts) where
-  provideFromF = getOpt @t
-
-instance (Applicative f, Contains t ts) => ProvidesF f t (Env m ts) where
-  provideFromF = pure . get @t
-
--- | embed a certain effectful computation if it is contained in the underlying hlist
-instance Contains (m t) ts => ProvidesEffect t (Env m ts) (ReaderT (Env m ts) m) where
-  effectFrom = ReaderT . const . get
-
--- | when the underlying hlist contains a certaing Labeled, the environment provides the value as well
-instance Provides (Labeled l t) (Env m ts) => ProvidesLabel l t (Env m ts) where
-  labelFrom = runLabeled . provideFrom @(Labeled l t)
+labeled :: forall l a e m . (MonadReader e m, Labeled l a e) => m a
+labeled = runLabel <$> provide @(Label l a)
 
 -- # internal api ---------------------------------------------------------------------------------
+
+class Get f t ts where
+  getF :: Env ts -> f t
+
+instance {-# Overlapping #-} HasMaybeIndexOf t ts => Get Maybe t ts where
+  getF (Env v) = unAny . V.unsafeIndex v <$> maybeIndexOf @t @ts
+
+instance {-# Overlapping #-} HasListIndices t ts => Get [] t ts where
+  getF (Env v) = map (unAny . V.unsafeIndex v) (getListIndices @t @ts)
+
+instance (Applicative f, HasIndexOf t ts) => Get f t ts where
+  getF (Env v) = pure . unAny . V.unsafeIndex v $ indexOf @t @ts
 
 data Any where
   Any ::t -> Any
 unAny :: Any -> p
 unAny (Any a) = unsafeCoerce a
 
-get :: forall t ts m . Contains t ts => Env m ts -> t
-get (Env v) = unAny $ V.unsafeIndex v $ indexByType @t @ts
+get :: forall t ts . Get Identity t ts => Env ts -> t
+get = runIdentity . getF
 
-getOpt
-  :: forall t ts m . KnownMaybeNat (GetMaybeIndex t ts) => Env m ts -> Maybe t
-getOpt (Env v) = unAny . V.unsafeIndex v <$> maybeIndexByType @t @ts
+headHV :: forall t ts . Env (t ': ts) -> t
+headHV = get
 
-extract :: forall t ts m . Extractable t ts => Env m ts -> [t]
-extract (Env v) = map (unAny . V.unsafeIndex v) (findIndexList @t @ts)
-
-headHV :: forall t ts m . Env m (t ': ts) -> t
-headHV = get @t
-
-tailHV :: forall t ts m . Env m ts -> Env m (Eval (Tail ts))
+tailHV :: forall t ts m . Env ts -> Env (Eval (Tail ts))
 tailHV (Env v) = Env (V.unsafeTail v)
 
+indexOf :: forall t ts . HasIndexOf t ts => Int
+indexOf = fromIntegral . TL.natVal $ Proxy @(IndexOf t ts)
+
+maybeIndexOf :: forall t ts . HasMaybeIndexOf t ts => Maybe Int
+maybeIndexOf = fromIntegral <$> maybeNatVal (Proxy @(MaybeIndexOf t ts))
+
+getListIndices :: forall t ts . HasListIndices t ts => [Int]
+getListIndices = fromIntegral <$> listNatVal (Proxy @(ListIndices t ts))
+
 -- # types
-type GetIndex (t :: k) (ts :: [k])
+type HasIndexOf t ts = TL.KnownNat (IndexOf t ts)
+type HasMaybeIndexOf t ts = KnownMaybeNat (MaybeIndexOf t ts)
+type HasListIndices t ts = KnownListNat (ListIndices t ts)
+
+type IndexOf (t :: k) (ts :: [k])
   = Eval (FromMaybe Stuck =<< FindIndex (TyEq t) ts)
-type Extractable t ts = KnownListNat (Eval (FindIndexList t ts))
-type GetMaybeIndex (t :: k) (ts :: [k]) = Eval (FindIndex (TyEq t) ts)
-type Contains t ts = TL.KnownNat (GetIndex t ts)
+type MaybeIndexOf (t :: k) (ts :: [k]) = Eval (FindIndex (TyEq t) ts)
+type ListIndices (t :: k) (ts :: [k]) = Eval (FindIndexList t ts)
 
 -- # type families
 type family FindIndexList_ (i :: TL.Nat) (x :: a) (xs :: [a]) :: [TL.Nat] where
@@ -157,20 +156,8 @@ type instance Eval (Tail as) = Eval (Drop 1 as)
 data FindIndexList :: a -> [a] -> Exp [TL.Nat]
 type instance Eval (FindIndexList n as) = FindIndexList_ 0 n as
 
--- # runtime representations
-
-indexByType :: forall t ts . TL.KnownNat (GetIndex t ts) => Int
-indexByType = fromIntegral . TL.natVal $ Proxy @(GetIndex t ts)
-
-maybeIndexByType
-  :: forall t ts . KnownMaybeNat (GetMaybeIndex t ts) => Maybe Int
-maybeIndexByType = fromIntegral <$> maybeNatVal (Proxy @(GetMaybeIndex t ts))
-
-findIndexList :: forall t ts . KnownListNat (Eval (FindIndexList t ts)) => [Int]
-findIndexList =
-  fromIntegral <$> listNatVal (Proxy @(Eval (FindIndexList t ts)))
-
 -- type demotion
+
 class KnownMaybeNat (v :: Maybe TL.Nat) where maybeNatVal :: Proxy v -> Maybe Integer
 instance KnownMaybeNat Nothing where
   maybeNatVal _ = Nothing
@@ -192,19 +179,20 @@ instance (TL.KnownNat x, KnownListNat xs) => KnownListNat (x ': xs) where
     tailP _ = Proxy
 
 -- instances
-instance Show (Env m '[]) where
+
+instance Show (Env '[]) where
   show _ = "Nil"
-instance (Show a, Show (Env m ts)) => Show (Env m (a ': ts)) where
+instance (Show a, Show (Env ts)) => Show (Env (a ': ts)) where
   show hv = show (get @a hv) ++ " :# " ++ show (tailHV hv)
 
-instance Eq (Env m '[]) where
+instance Eq (Env '[]) where
   _ == _ = True
-instance (Eq t, Eq (Env m ts)) => Eq (Env m (t ': ts)) where
+instance (Eq t, Eq (Env ts)) => Eq (Env (t ': ts)) where
   l1 == l2 = headHV l1 == headHV l2 && (tailHV l1 == tailHV l2)
 
-instance Ord (Env m '[]) where
+instance Ord (Env '[]) where
   compare _ _ = EQ
-instance (Ord t, Ord (Env m ts)) => Ord (Env m (t ': ts)) where
+instance (Ord t, Ord (Env ts)) => Ord (Env (t ': ts)) where
   compare l1 l2 = case compare (headHV l1) (headHV l2) of
     EQ -> compare (tailHV l1) (tailHV l2)
     r  -> r

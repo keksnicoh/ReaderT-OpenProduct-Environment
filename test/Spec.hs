@@ -16,7 +16,7 @@ main = hspec $ do
     it "should work with underlying Identity monad"
       $ let
           -- note: the dependency on the "bork" label does not exists due to the mocked someDependency
-          env = "depf" #: pure @Identity time #: Labeled @"derp" "yo" #: nil
+          env = "depf" #: pure @Identity time #: Label @"derp" "yo" #: nil
           someDependency = return "hi"
           testHandler    = handler someDependency
           reader         = testHandler (Just 5)
@@ -25,7 +25,7 @@ main = hspec $ do
           result
             `shouldBe` "[\"depf\",\"Just 5\",\"2020-07-21 09:49:39.399779 UTC\",\"yo\",\"hi\"]"
     it "should work with underlying IO monad" $ do
-      let env = "depf" #: pure @IO time #: Labeled @"derp" "yo" #: nil
+      let env = "depf" #: pure @IO time #: Label @"derp" "yo" #: nil
           someDependency = return "jo"
           testHandler    = handler someDependency
           reader         = testHandler Nothing

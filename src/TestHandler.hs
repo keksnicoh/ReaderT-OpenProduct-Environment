@@ -9,6 +9,7 @@ import           Control.Monad.Reader           ( liftIO
                                                 , MonadReader
                                                 )
 import           Env
+import Control.Monad.Identity (runIdentity, Identity)
 
 -- we need some MonadReader with an environment
 -- 1. providing a String
@@ -17,8 +18,9 @@ import           Env
 handler
   :: ( MonadReader e m
      , Provides String e
-     , ProvidesEffect T.UTCTime e m
-     , ProvidesLabel "derp" String e
+     , Embedded T.UTCTime e m
+   --  , EmbeddedF Maybe T.UTCTime e m
+     , Labeled "derp" String e
      )
   => SomeDependency m -- dependency injection
   -- ... n dependencies
@@ -26,8 +28,10 @@ handler
   -> m String
 handler someDependency a = do
   val               <- provide
-  currentTime       <- effect @T.UTCTime
-  someLabeledString <- label @"derp"
+  currentTime       <- embedded @T.UTCTime
+  --currentTimeMaybe       <- embeddedF @Maybe @T.UTCTime
+  --currentTimeMaybe       <- embeddedF @[] @T.UTCTime
+  someLabeledString <- labeled @"derp"
   anotherString     <- someDependency
 
   let myListToBeRendered =
@@ -44,7 +48,7 @@ someDependency
      , ProvidesF [] Int e    -- many values
      , ProvidesF IO Int e    -- kind of useless, but possible
      )
-  => m String
+  => SomeDependency m
 someDependency = do
   maybe <- provideF @Maybe @Int         -- provide maybe
   list  <- provideF @[] @Int            -- provide list

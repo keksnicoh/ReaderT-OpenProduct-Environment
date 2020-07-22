@@ -22,8 +22,7 @@ main = Network.Wai.Handler.Warp.run 1337 (Server.app env)
     "foo"
       #: T.getCurrentTime
       #: liftIO @Handler T.getCurrentTime
-      #: Labeled @"derp" "ieks"
-      #: Labeled @"bork" "the bork val"
+      #: Label @"derp" "some-string"
       #: (123 :: Int) -- note that we can happily drop these
       #: (456 :: Int)
       #: nil
