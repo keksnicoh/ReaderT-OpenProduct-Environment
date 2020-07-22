@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: efd66d37cca43ecfa4ba1633caf8441d214ffbc33deb3cf8b9beb32e23a9286d
+-- hash: ecd1c35b0c4f62cbc0227a10c1dc016c008d957f0c2c3df93ef332367c934c2f
 
 name:           openenv
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Env
+      HList
       Lib
       TestHandler
   other-modules:
