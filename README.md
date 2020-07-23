@@ -95,7 +95,6 @@ while in a real application receiving the current time might be setup as follows
 let
   env =
     "foo"
-      #: T.getCurrentTime
       #: liftIO @Handler T.getCurrentTime
       #: Label @"derp" "some-string"
       #: nil
