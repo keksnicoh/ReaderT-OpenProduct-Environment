@@ -95,7 +95,7 @@ let
       #: nil
 ```
 
-we note that embedded effects from the environment distinguishe to argument dependency injection by the fact that they are contained in the underlying monad and thus do not have access to the environment.
+we note that embedded environmental effects distinguish to argument dependency injection by the fact that they are contained in the underlying monad and thus do not have access to the environment.
 
 ```bash
 stack test
