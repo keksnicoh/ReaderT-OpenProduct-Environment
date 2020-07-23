@@ -7,7 +7,7 @@ Use `Provides` constraint to access pure values while effectfull values `m e` ca
 
 This is a playground repository.
 
-- Typelevel computation are based on [S. Maguire - Thinking with Types][1]
+- Typelevel computations are based on [S. Maguire - Thinking with Types][1]
 - [Embedded ReaderT Pattern][2]
 - Example Project using embedded ReaderT: [toroise-service][3]
 
