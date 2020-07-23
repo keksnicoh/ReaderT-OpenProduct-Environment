@@ -49,8 +49,8 @@ someDependency
      , MonadIO m
      , ProvidesF Maybe Int e -- optional
      , ProvidesF [] Int e    -- many values
-     , ProvidesF IO Int e
-     )    -- kind of useless, but possible
+     , ProvidesF IO Int e    -- kind of useless, but possible
+     )
   => SomeDependency m
 someDependency = do
   maybe <- provideF @Maybe @Int         -- provide maybe

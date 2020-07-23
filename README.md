@@ -4,13 +4,16 @@ Embedded ReaderT with OpenProduct environment allows to define static dependency
 Instead of a simple datatype, an OpenProduct is used.
 All factors of the product may be accessed by generic type class instances thus it's not required to define individual type classes for each field. The pattern is independent of Frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
 
-Use `Provides` constraint to access pure values while effectfull values `m e` can ebmedded via `Embedded` constraint in `ReaderT e m` context.
+Use `Provides` constraint to access pure values while effectfull values `m e` can ebmedded via `Embedded` constraint into `ReaderT e m` context.
 
-Most of the ideas in this repository are inspired by [S. Maguire - Thinking with Types][1]
+This is a playground repository.
+
+Most of the concepts are inspired by [S. Maguire - Thinking with Types][1]
 
 ## Example
 
 ```haskell
+type SomeDependency m = Int -> m String
 handler
   :: ( MonadReader e m
      , Provides String e       -- e contains at least one String
@@ -20,25 +23,21 @@ handler
   => SomeDependency m -- dependency injection
   -- ... n dependencies
   -> Maybe Int        -- args
-  -> m String
-handler someDependency a = do
-  val               <- provide
+  -> m [String]
+handler someDependency argument = do
+  value             <- provide @String
   currentTime       <- embedded @T.UTCTime
   someLabeledString <- labeled @"derp"
-  anotherString     <- someDependency
-  let myListToBeRendered =
-        [val, show a, show currentTime, someLabeledString, anotherString]
+  anotherString     <- someDependency argument
 
-  return $ show myListToBeRendered
+  return [show argument, value, show currentTime, someLabeledString, anotherString]
 ```
 
 `Provide == ProvideF Identity` and `Embedded == EmbeddedF Identity`.
 There are `*F f` instances for all `Applicative f`
 
 ```haskell
--- type alias provides some context.
-type SomeDependency m = m String
-someDependency
+handler
   :: ( MonadReader e m
      , MonadIO m
      , ProvidesF Maybe Int e -- optional
@@ -46,8 +45,8 @@ someDependency
      , ProvidesF IO Int e    -- kind of useless.. but possible
      , EffectF Maybe String e m
      )
-  => SomeDependency m
-someDependency = do
+  => m String
+handler = do
   maybe       <- provideF @Maybe @Int         -- provide maybe
   list        <- provideF @[] @Int            -- provide list
   bla         <- provideF @IO @Int >>= liftIO -- applicatives in general are working, thus IO
@@ -89,7 +88,7 @@ let
       #: nil
 ```
 
-we note that effectfull environment distinguishes to argument dependency injection by the fact that values are only contained in the underlying monad and thus do not have access to the environment.
+we note that embedded effects from the environment distinguishe to argument dependency injection by the fact that they are contained in the underlying monad and thus do not have access to the environment.
 
 ```bash
 stack test
