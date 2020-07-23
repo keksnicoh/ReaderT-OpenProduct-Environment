@@ -1,9 +1,13 @@
 # ReaderT-OpenProduct-Environment
 
 Embedded ReaderT with OpenProduct environment allows to define static dependency tree having dynamic environment.
-All factors of the product may be accessed thru generic type classes thus it's not required to define individual type classes for each field. The pattern is independent of Frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
+All factors of the product may be accessed thru generic type classes thus it's not required to define individual type classes for each field. 
+One goal of this approach is to reduce the number of typeclasses describing the environment.
+The pattern is independent of Frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
 
 Use `Provides` constraint to access pure values while effectfull values `m e` can ebmedded via `Embedded` constraint into `ReaderT e m` context.
+
+Dependency injection is done explicitly by function arguments. However, approaches like tagless final etc are possible.
 
 This is a playground repository.
 
