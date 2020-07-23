@@ -4,6 +4,11 @@
   RankNTypes, ConstraintKinds, UndecidableInstances,
   MultiParamTypeClasses #-}
 
+{-|
+Module      : HList
+
+The HList serves as an open environment
+-}
 module HList
   ( (#:)
   , nil

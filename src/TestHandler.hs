@@ -9,7 +9,10 @@ import           Control.Monad.Reader           ( liftIO
                                                 , MonadReader
                                                 )
 import           Env
-import Control.Monad.Identity (runIdentity, Identity)
+import           Control.Monad.Identity         ( runIdentity
+                                                , Identity
+                                                )
+import           Data.Maybe                     ( fromMaybe )
 
 -- we need some MonadReader with an environment
 -- 1. providing a String
@@ -46,11 +49,29 @@ someDependency
      , MonadIO m
      , ProvidesF Maybe Int e -- optional
      , ProvidesF [] Int e    -- many values
-     , ProvidesF IO Int e    -- kind of useless, but possible
-     )
+     , ProvidesF IO Int e
+     )    -- kind of useless, but possible
   => SomeDependency m
 someDependency = do
   maybe <- provideF @Maybe @Int         -- provide maybe
   list  <- provideF @[] @Int            -- provide list
   bla   <- provideF @IO @Int >>= liftIO -- applicatives in general are working like Identity->f
   return $ show maybe ++ show list ++ show bla
+
+-- | labels can be fetched in functorial context
+labelTest
+  :: (MonadReader e m, LabeledF Maybe "a" String e, LabeledF [] "b" String e)
+  => m [String]
+labelTest = do
+  a <- fromMaybe "default" <$> labeledF @Maybe @"a" @String
+  b <- labeledF @[] @"b" @String
+  return $ [a] <> b
+
+-- | labels can be fetched in functorial context
+embeddedTest
+  :: (MonadReader e m, EmbeddedF Maybe String e m, EmbeddedF [] Int e m)
+  => m [String]
+embeddedTest = do
+  a <- fromMaybe "default" <$> embeddedF @Maybe @String
+  b <- embeddedF @[] @Int
+  return $ [a] <> (show <$> b)
