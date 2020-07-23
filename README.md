@@ -8,7 +8,7 @@ Use `Provides` constraint to access pure values while effectfull values `m e` ca
 
 This is a playground repository.
 
-Most of the concepts are inspired by [S. Maguire - Thinking with Types][1]
+- Type-Level concepts are inspired by [S. Maguire - Thinking with Types][1]
 
 ## Example
 
