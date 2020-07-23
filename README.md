@@ -57,23 +57,31 @@ handler = do
 As effects may embedd into the stack, the `MonadIO` constraint is not required in many cases, thus any pure monad can be used within specs / mocks.
 
 ```haskell
+embeddedTest
+  :: (MonadReader e m, EmbeddedF Maybe String e m, EmbeddedF [] Int e m)
+  => m [String]
+embeddedTest = do
+  a <- fromMaybe "default" <$> embeddedF @Maybe @String
+  b <- embeddedF @[] @Int
+  return $ [a] <> (show <$> b)
+
+-- specs
+
 main :: IO ()
 main = hspec $ do
-  describe "handler" $ do
-    it "should work with underlying Identity monad"
-      $ let
-          env = 
-            "depf"
-              #: pure @Identity time
-              #: Label @"derp" "yo"
-              #: nil
-          someDependency = return "hi"
-          testHandler    = handler someDependency
-          reader         = testHandler (Just 5)
-          result         = runIdentity $ runReaderT reader env
-        in
-          result
-            `shouldBe` "[\"depf\",\"Just 5\",\"2020-07-21 09:49:39.399779 UTC\",\"yo\",\"hi\"]"
+  describe "embeddedTest" $ do
+    it "should work without any effect in the environment"
+      $ let env    = "test" #: nil
+            result = runIdentity $ runReaderT embeddedTest env
+        in  result `shouldBe` ["default"]
+    it "should work without any effect in the environment"
+      $ let env =
+              pure @Identity "foo"
+                #: pure @Identity @Int 1
+                #: pure @Identity @Int 2
+                #: nil
+            result = runIdentity $ runReaderT embeddedTest env
+        in  result `shouldBe` ["foo", "1", "2"]
 ```
 
 while in a real application receiving the current time might be setup as follows
