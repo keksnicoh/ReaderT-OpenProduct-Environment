@@ -8,6 +8,8 @@ Use `Provides` constraint to access pure values while effectfull values `m e` ca
 This is a playground repository.
 
 - Typelevel computation are based on [S. Maguire - Thinking with Types][1]
+- [Embedded ReaderT Pattern][2]
+- Example Project using embedded ReaderT: [toroise-service][3]
 
 ## Example
 
@@ -109,3 +111,5 @@ stack test
 - No custom type classes required
 
 [1]: https://leanpub.com/thinking-with-types
+[2]: https://stackoverflow.com/questions/61780295/readert-design-pattern-parametrize-the-environment
+[3]: https://github.com/keksnicoh/tortoise-service
