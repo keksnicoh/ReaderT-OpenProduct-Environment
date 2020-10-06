@@ -2,7 +2,7 @@
 
 This is a playground repository. ReaderT pattern using open environment. The pattern allows to define static dependency tree having dynamic environment.
 Instead of a simple adt, an open-product is used to represent the application environment.
-All factors of the product can be accessed by generic type class instances thus it's not required to define individual type classes for each field. The pattern is independent of frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
+All factors of the product can be accessed by generic type class instances thus it's not required to define individual type classes. The pattern is independent of frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
 
 Use `Provides v e` constraint to access pure values `v` while environmental effects `m v` can be ebmedded via `Embedded v e m` constraint.
 
