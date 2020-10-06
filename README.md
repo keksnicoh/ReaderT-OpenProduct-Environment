@@ -2,7 +2,7 @@
 
 This is a playground repository. ReaderT pattern using open environment. The pattern allows to define static dependency tree having dynamic environment.
 Instead of a simple adt, an open-product is used to represent the application environment.
-All factors of the product can be accessed by generic type class instances thus it's not required to define individual type classes for each field. The pattern is independent of frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
+All factors of the product can be accessed by generic type class instances thus it's not required to define individual type classes. The pattern is independent of frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
 
 Use `Provides v e` constraint to access pure values `v` while environmental effects `m v` can be ebmedded via `Embedded v e m` constraint.
 
@@ -30,19 +30,19 @@ handler someDependency argument = do
   currentTime       <- embedded @T.UTCTime     -- access effectfull value
   someLabeledString <- labeled @"derp"         -- access labeled value
 
-  anotherString     <- someDependency argument -- bind effect from injected function
+  anotherString     <- someDependency 5        -- bind effect from injected function
 
   return [show argument, value, show currentTime, someLabeledString, anotherString]
 ```
 
-The latter type-classes are special cases of more general ones:
+The latter type classes are special cases of more general ones:
 
 ```
 Provide = ProvideF Identity
 Embedded = EmbeddedF Identity
 ```
 
-The more general type-classes can be used like
+Example of more general interaction with the environment
 
 ```haskell
 handler
@@ -62,7 +62,7 @@ handler = do
   return $ show maybe ++ show list ++ show bla ++ show maybeString
 ```
 
-As environmental effects can be embedded into the stack, the `MonadIO` constraint may not be required in many cases, thus any monad can be used within specs
+As environmental effects can be embedded into the stack, the constraints like `MonadIO` may not be required in most cases, thus any monad can be used within specs
 
 ```haskell
 embeddedTest
