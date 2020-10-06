@@ -1,8 +1,17 @@
-{-# LANGUAGE DataKinds, PolyKinds, TypeFamilies,
-  TypeOperators, FlexibleInstances, GADTs, ScopedTypeVariables,
-  AllowAmbiguousTypes, FlexibleContexts, TypeApplications,
-  RankNTypes, ConstraintKinds, UndecidableInstances,
-  MultiParamTypeClasses #-}
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 {-|
 Module      : HList
@@ -17,14 +26,14 @@ module HList
   )
 where
 
-import qualified GHC.TypeLits                  as TL
-import           Fcf                     hiding ( Tail )
-import           Data.Proxy                     ( Proxy(..) )
-import           Unsafe.Coerce                  ( unsafeCoerce )
-import qualified Data.Vector                   as V
-import           Control.Monad.Identity         ( runIdentity
-                                                , Identity
-                                                )
+import           Control.Monad.Identity (Identity, runIdentity)
+import           Data.Proxy             (Proxy (..))
+import qualified Data.Vector            as V
+import           Fcf                    (type (=<<), Eval, Exp, FindIndex,
+                                         FromMaybe, Stuck, TyEq)
+import           GHC.Exts               (Any (..))
+import qualified GHC.TypeLits           as TL
+import           Unsafe.Coerce          (unsafeCoerce)
 
 -- # basic datatype
 
@@ -35,25 +44,20 @@ nil :: HList '[]
 nil = HList V.empty
 
 (#:) :: t -> HList ts -> HList (t ': ts)
-ft #: (HList v) = HList $ V.cons (Any ft) v
+ft #: (HList v) = HList $ V.cons (unsafeCoerce ft) v
 infixr 5 #:
 
 class Get f t ts where
   getF :: HList ts -> f t
 
 instance {-# Overlapping #-} HasMaybeIndexOf t ts => Get Maybe t ts where
-  getF (HList v) = unAny . V.unsafeIndex v <$> maybeIndexOf @t @ts
+  getF (HList v) = unsafeCoerce . V.unsafeIndex v <$> maybeIndexOf @t @ts
 
 instance {-# Overlapping #-} HasListIndices t ts => Get [] t ts where
-  getF (HList v) = map (unAny . V.unsafeIndex v) (getListIndices @t @ts)
+  getF (HList v) = map (unsafeCoerce . V.unsafeIndex v) (getListIndices @t @ts)
 
 instance (Applicative f, HasIndexOf t ts) => Get f t ts where
-  getF (HList v) = pure . unAny . V.unsafeIndex v $ indexOf @t @ts
-
-data Any where
-  Any ::t -> Any
-unAny :: Any -> p
-unAny (Any a) = unsafeCoerce a
+  getF (HList v) = pure . unsafeCoerce . V.unsafeIndex v $ indexOf @t @ts
 
 get :: forall t ts . Get Identity t ts => HList ts -> t
 get = runIdentity . getF

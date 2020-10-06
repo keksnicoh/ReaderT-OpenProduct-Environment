@@ -1,12 +1,10 @@
 # ReaderT-OpenProduct-Environment
 
-Embedded ReaderT with OpenProduct environment allows to define static dependency tree having dynamic environment.
-Instead of a simple datatype, an OpenProduct is used.
-All factors of the product may be accessed by generic type class instances thus it's not required to define individual type classes for each field. The pattern is independent of Frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
+This is a playground repository. ReaderT pattern using open environment. The pattern allows to define static dependency tree having dynamic environment.
+Instead of a simple adt, an open-product is used to represent the application environment.
+All factors of the product can be accessed by generic type class instances thus it's not required to define individual type classes for each field. The pattern is independent of frameworks, however, in this repo, Servant is used to lift the examples into a "real" application.
 
-Use `Provides` constraint to access pure values while effectfull values `m e` can ebmedded via `Embedded` constraint into `ReaderT e m` context.
-
-This is a playground repository.
+Use `Provides v e` constraint to access pure values `v` while environmental effects `m v` can be ebmedded via `Embedded v e m` constraint.
 
 Most of the concepts are inspired by [S. Maguire - Thinking with Types][1]
 
@@ -14,27 +12,35 @@ Most of the concepts are inspired by [S. Maguire - Thinking with Types][1]
 
 ```haskell
 type SomeDependency m = Int -> m String
+
 handler
   :: ( MonadReader e m
-     , Provides String e       -- e contains at least one String
-     , Embedded T.UTCTime e m  -- e contains UTCTime embeddable into m
-     , Labeled "derp" String e -- e contains at list one (Label "derp" String)
+     , Provides String e       -- environment e contains at least one String
+     , Embedded T.UTCTime e m  -- environment e contains effectful T.UTCTime
+     , Labeled "derp" String e -- environment e contains at least one (Label "derp" String)
      )
   => SomeDependency m -- dependency injection
   -- ... n dependencies
-  -> Maybe Int        -- args
-  -> m [String]
+  -> Maybe Int        -- function argument
+  -> m [String]       -- result
 handler someDependency argument = do
-  value             <- provide @String
-  currentTime       <- embedded @T.UTCTime
-  someLabeledString <- labeled @"derp"
-  anotherString     <- someDependency argument
+  value             <- provide @String         -- access pure value
+  currentTime       <- embedded @T.UTCTime     -- access effectfull value
+  someLabeledString <- labeled @"derp"         -- access labeled value
+  
+  anotherString     <- someDependency argument -- bind effect from injected function
 
   return [show argument, value, show currentTime, someLabeledString, anotherString]
 ```
 
-`Provide == ProvideF Identity` and `Embedded == EmbeddedF Identity`.
-There are `*F f` instances for all `Applicative f`
+The latter type-classes are special cases of more general ones:
+
+```
+Provide = ProvideF Identity
+Embedded = EmbeddedF Identity
+```
+
+The more general type-classes can be used like
 
 ```haskell
 handler
@@ -54,7 +60,7 @@ handler = do
   return $ show maybe ++ show list ++ show bla ++ show maybeString
 ```
 
-As effects may embedd into the stack, the `MonadIO` constraint is not required in many cases, thus any pure monad can be used within specs / mocks.
+As environmental effects can be embedded into the stack, the `MonadIO` constraint may not be required in many cases, thus any monad can be used within specs
 
 ```haskell
 embeddedTest
@@ -84,7 +90,7 @@ main = hspec $ do
         in  result `shouldBe` ["foo", "1", "2"]
 ```
 
-while in a real application receiving the current time might be setup as follows
+while the runtime environment might be setup as follows
 
 ```bash
 let
@@ -96,7 +102,7 @@ let
       #: nil
 ```
 
-we note that embedded effects from the environment distinguishe to argument dependency injection by the fact that they are contained in the underlying monad and thus do not have access to the environment.
+note that embedded effects from the environment distinguishe to argument dependency injection by the fact that they are contained in the underlying monad and thus do not have access to the environment.
 
 ```bash
 stack test
@@ -105,7 +111,7 @@ stack test
 ## Summary
 
 - Environment provides pure values (`ProvidesF`)
-- Environment contains effects (`EffectF`) which are embeddable into application Monad but do not have access to the environment.
+- Environment contains monad values (`EffectF`) which are embeddable into application Monad but do not have access to the environment.
 - Explicit static dependency injection via function arguments
 - No custom type classes required
 

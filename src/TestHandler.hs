@@ -1,18 +1,15 @@
-{-# LANGUAGE DataKinds, TypeApplications, FlexibleContexts #-}
+{-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 
 module TestHandler where
 
-import qualified Data.Time                     as T
-import           Control.Monad.Reader           ( liftIO
-                                                , join
-                                                , MonadIO
-                                                , MonadReader
-                                                )
-import           Env
-import           Control.Monad.Identity         ( runIdentity
-                                                , Identity
-                                                )
-import           Data.Maybe                     ( fromMaybe )
+import           Control.Monad.Reader (MonadIO, MonadReader, liftIO)
+import           Data.Maybe           (fromMaybe)
+import qualified Data.Time            as T
+import           Env                  (Embedded, EmbeddedF, Labeled, LabeledF,
+                                       Provides, ProvidesF, embedded, embeddedF,
+                                       labeled, labeledF, provide, provideF)
 
 -- we need some MonadReader with an environment
 -- 1. providing a String
@@ -49,8 +46,8 @@ someDependency
      , MonadIO m
      , ProvidesF Maybe Int e -- optional
      , ProvidesF [] Int e    -- many values
-     , ProvidesF IO Int e    -- kind of useless, but possible
-     )
+     , ProvidesF IO Int e
+     )    -- kind of useless, but possible
   => SomeDependency m
 someDependency = do
   maybe <- provideF @Maybe @Int         -- provide maybe
