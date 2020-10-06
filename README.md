@@ -30,7 +30,7 @@ handler someDependency argument = do
   currentTime       <- embedded @T.UTCTime     -- access effectfull value
   someLabeledString <- labeled @"derp"         -- access labeled value
 
-  anotherString     <- someDependency 5.       -- bind effect from injected function
+  anotherString     <- someDependency 5        -- bind effect from injected function
 
   return [show argument, value, show currentTime, someLabeledString, anotherString]
 ```
