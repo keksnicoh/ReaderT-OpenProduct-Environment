@@ -35,14 +35,14 @@ handler someDependency argument = do
   return [show argument, value, show currentTime, someLabeledString, anotherString]
 ```
 
-The latter type-classes are special cases of more general ones:
+The latter type classes are special cases of more general ones:
 
 ```
 Provide = ProvideF Identity
 Embedded = EmbeddedF Identity
 ```
 
-The more general type-classes can be used like
+Example of more general interaction with the environment
 
 ```haskell
 handler
@@ -62,7 +62,7 @@ handler = do
   return $ show maybe ++ show list ++ show bla ++ show maybeString
 ```
 
-As environmental effects can be embedded into the stack, the `MonadIO` constraint may not be required in many cases, thus any monad can be used within specs
+As environmental effects can be embedded into the stack, the constraints like `MonadIO` may not be required in most cases, thus any monad can be used within specs
 
 ```haskell
 embeddedTest
