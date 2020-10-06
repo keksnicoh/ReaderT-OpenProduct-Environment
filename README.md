@@ -6,7 +6,9 @@ All factors of the product can be accessed by generic type class instances thus 
 
 Use `Provides v e` constraint to access pure values `v` while environmental effects `m v` can be ebmedded via `Embedded v e m` constraint.
 
-Most of the concepts are inspired by [S. Maguire - Thinking with Types][1]
+- Typelevel computations are based on [S. Maguire - Thinking with Types][1]
+- [Embedded ReaderT Pattern][2]
+- Example Project using embedded ReaderT: [toroise-service][3]
 
 ## Example
 
@@ -27,7 +29,7 @@ handler someDependency argument = do
   value             <- provide @String         -- access pure value
   currentTime       <- embedded @T.UTCTime     -- access effectfull value
   someLabeledString <- labeled @"derp"         -- access labeled value
-  
+
   anotherString     <- someDependency argument -- bind effect from injected function
 
   return [show argument, value, show currentTime, someLabeledString, anotherString]
@@ -96,12 +98,10 @@ while the runtime environment might be setup as follows
 let
   env =
     "foo"
-      #: T.getCurrentTime
       #: liftIO @Handler T.getCurrentTime
       #: Label @"derp" "some-string"
       #: nil
 ```
-
 note that embedded effects from the environment distinguishe to argument dependency injection by the fact that they are contained in the underlying monad and thus do not have access to the environment.
 
 ```bash
@@ -116,3 +116,5 @@ stack test
 - No custom type classes required
 
 [1]: https://leanpub.com/thinking-with-types
+[2]: https://stackoverflow.com/questions/61780295/readert-design-pattern-parametrize-the-environment
+[3]: https://github.com/keksnicoh/tortoise-service
